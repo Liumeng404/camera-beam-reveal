@@ -1,0 +1,63 @@
+:root { --bg: #16171a; --panel: #1f2125; --line: #2e3136; --fg: #e6e6e6; --dim: #8b9099; --acc: #e9b949; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.6 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
+#app { display: grid; grid-template-columns: minmax(340px, 30%) 1fr; height: 100vh; }
+
+/* 左：配方卡 */
+#recipe { overflow: auto; padding: 22px 26px 60px; border-right: 1px solid var(--line); background: var(--panel); }
+#recipe .head .cat { color: var(--acc); font-size: 12px; letter-spacing: 1px; }
+#recipe .head h1 { margin: 4px 0 6px; font-size: 22px; }
+#recipe .head .id { color: var(--dim); font-family: Consolas, monospace; font-size: 12px; cursor: pointer; }
+#recipe .head .id:hover { color: var(--fg); }
+#recipe .summary { margin: 12px 0; padding: 10px 12px; background: #2a2c31; border-left: 3px solid var(--acc); border-radius: 4px; }
+#recipe dl.facts { display: grid; grid-template-columns: 52px 1fr; gap: 4px 10px; margin: 10px 0 18px; font-size: 13px; }
+#recipe dl.facts dt { color: var(--dim); }
+#recipe dl.facts dd { margin: 0; }
+#recipe .tag { display: inline-block; margin: 0 4px 4px 0; padding: 0 8px; border-radius: 10px; background: #34373d; font-size: 12px; }
+#recipe .status-draft { color: #f08c5a; }
+#recipe h2 { font-size: 15px; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); color: var(--acc); }
+#recipe h3 { font-size: 14px; margin: 14px 0 6px; }
+#recipe p, #recipe li { color: #cfd2d6; }
+#recipe ul { padding-left: 20px; margin: 6px 0; }
+#recipe code { font-family: Consolas, monospace; background: #2c2f34; padding: 0 4px; border-radius: 3px; font-size: 12.5px; }
+#recipe table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 6px 0; }
+#recipe th, #recipe td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: top; }
+#recipe th { background: #2a2c31; }
+
+/* 右：舞台 + 控制 */
+#right { display: grid; grid-template-rows: 1fr auto auto; min-width: 0; min-height: 0; }
+#stageWrap { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 18px; }
+#stage { position: relative; box-shadow: 0 6px 30px rgba(0, 0, 0, .5); }
+#stage svg { display: block; width: 100%; height: 100%; }
+#stage svg text { font-family: "DeYiHei", "Smiley Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; font-weight: 700; }
+#stage .guide { position: absolute; inset: 0; pointer-events: none; }
+#stage .safe { position: absolute; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(255, 60, 60, .18) 0 10px, rgba(255, 60, 60, .06) 10px 20px); border-top: 1px dashed rgba(255, 60, 60, .8); }
+#stage .grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0, 0, 0, .12) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, .12) 1px, transparent 1px); }
+#err { position: absolute; left: 18px; right: 18px; bottom: 18px; background: #5a1f1f; color: #ffd6d6; padding: 8px 12px; border-radius: 6px; font-family: Consolas, monospace; white-space: pre-wrap; display: none; }
+
+#bar { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-top: 1px solid var(--line); background: var(--panel); }
+#bar button, #params button { background: #2f3238; color: var(--fg); border: 1px solid #3a3e45; border-radius: 5px; padding: 3px 10px; cursor: pointer; font: inherit; }
+#bar button:hover, #params button:hover { background: #3a3e45; }
+#bar input[type=range] { flex: 1; accent-color: var(--acc); }
+#bar .tc { font-family: Consolas, monospace; color: var(--dim); min-width: 150px; text-align: right; }
+#bar label { color: var(--dim); font-size: 12px; user-select: none; }
+#bar select { background: #2f3238; color: var(--fg); border: 1px solid #3a3e45; border-radius: 5px; }
+
+#params { padding: 10px 16px 14px; background: var(--panel); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 18px; max-height: 32vh; overflow: auto; }
+#params .ph { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; color: var(--dim); font-size: 12px; }
+#params .ph b { color: var(--fg); font-weight: normal; }
+#params .ph .sp { flex: 1; }
+#params .f { display: grid; grid-template-columns: 78px 1fr auto; align-items: center; gap: 6px; font-size: 12.5px; }
+#params .f > span:first-child { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#params .f input[type=range] { width: 100%; accent-color: var(--acc); }
+#params .f input[type=text], #params .f textarea, #params .f select, #params .f input[type=number] { width: 100%; background: #2a2c31; color: var(--fg); border: 1px solid #3a3e45; border-radius: 4px; padding: 2px 6px; font: inherit; }
+#params .f textarea { resize: vertical; min-height: 44px; }
+#params .f .v { font-family: Consolas, monospace; color: var(--dim); min-width: 38px; text-align: right; }
+#params .f input[type=color] { width: 40px; height: 24px; border: none; background: none; padding: 0; }
+
+/* 嵌入模式（截图 / 渲染）：只剩舞台 */
+body.embed #app { display: block; }
+body.embed #recipe, body.embed #bar, body.embed #params { display: none; }
+body.embed #right { display: block; height: 100vh; }
+body.embed #stageWrap { height: 100vh; padding: 0; }
+body.embed #stage { box-shadow: none; }

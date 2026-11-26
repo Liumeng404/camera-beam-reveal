@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./lib/harness.css">
+
+<script type="application/json" id="effect-meta">
+{
+  "id": "camera-beam-reveal",
+  "name": "摄像机·光锥揭画",
+  "category": "开场钩子",
+  "tags": ["摄像机", "投影", "光锥", "遮罩", "揭示", "卡点", "多图", "开场", "拼装"],
+  "summary": "套色摄像机的机身从底部被竖直抛起、边飞边翻一圈，落地后跳起来接住旋转落下的遮光罩，撞上的一瞬间镜头打出光锥；光锥是遮罩，照到哪里就露出哪里的拼图画面。摄像机随后平滑地在左、右上、左中之间扫动，最后滑到右边缘停住。",
+  "use": "开场先「藏」再「露」：多张素材（截图、剧照、产品图）不直接摆出来，让观众跟着光锥一块块看到；卡点类开场、合集预告、「今天要讲的几样东西」。",
+  "energy": "中高（上抛落地是蓄力，撞罩开光锥是第一个高点，之后每段扫动的中段冲刺各是一拍）",
+  "duration": 4.8,
+  "size": [1920, 1080],
+  "background": "#f3ead6",
+  "params": [
+    { "key": "images", "type": "textarea", "label": "画面素材", "default": "", "hint": "每行一个，最多 4 行：assets/ 下的相对路径，或 http(s) / 以 / 开头的地址。1 行铺满全屏，2 行左右分，3–4 行田字格。留空就用下面的文字占位块" },
+    { "key": "labels", "type": "textarea", "label": "占位文字", "default": "素材 1\n素材 2\n素材 3\n素材 4", "hint": "没给图片的格子显示这里对应行的文字" },
+    { "key": "scale", "type": "slider", "label": "摄像机大小", "min": 0.6, "max": 4, "step": 0.05, "default": 2.4, "hint": "2.4 时摄像机（含遮光罩）约 190×190px" },
+    { "key": "paperBg", "type": "boolean", "label": "自带纸底", "default": true, "hint": "光锥外面要是空白，揭示才成立；底下的画面本来就是纯色时可以关掉" },
+    { "key": "paper", "type": "color", "label": "纸色", "default": "#f3ead6" },
+    { "key": "misreg", "type": "boolean", "label": "套印错版", "default": true },
+    { "key": "ink", "type": "color", "label": "机身（蓝墨）", "default": "#2340c4" },
+    { "key": "ink2", "type": "color", "label": "遮光罩（绿墨）", "default": "#00a37a" }
+  ],
+  "status": "stable",
+  "version": 2,
+  "updated": "2026-11-19"
+}
+</script>
+
+<script type="text/markdown" id="card">
+## 意图
+画面一开始是空的，只有一台摄像机在飞——观众先认出「这是镜头」。镜头一打开，**光锥照到哪里，哪里才有画面**，观众会下意识跟着光锥去找东西，开头几秒的注意力就被锁住了。每段扫动的中段冲刺都卡一个鼓点，露出同一张拼图的不同角落：看到的是局部，想看全貌就得往下看。整个过程是**连续的物理感运动**（抛起、落下、回弹、甩动），不是关键帧之间的跳切。
+
+## 动效核心
+所有曲线都是逐帧追踪（30fps）拟合的，轨迹精度与参考运动平均偏差约 1% 画面。
+- 0–0.63s：机身（蓝墨）从画面底下竖直抛起，`oc` 减速到顶（y=0.14H）
+- 0.63–1.17s：自由落体回到 y=0.62H（p⁵，前段几乎悬停、后段猛落），落地后小弹 0.02H
+- 0.12–1.15s：同时匀速翻一整圈（`io`），落地时镜头朝上
+- 1.13s：遮光罩（绿墨）出现在上方 0.17H，浮到 0.13H 后加速落下，一路匀速转 1.5 圈
+- 1.47–1.667s：机身起跳（`oc`）到 0.49H 去「接」罩子；1.667s 撞上——光锥 0.07s 内全开（半角 36°），套印错位一下
+- 1.67–1.83s：撞击后回弹下沉到 0.597H（`oc`）
+- 1.83s 起：5 段平滑扫动，位置和光锥角度同用一条曲线，段与段可以重叠：
+  底部 → 左侧（0.62s）→ 往上蹿、急停（0.27s，p^1.6）→ 右上（0.76s，光锥从下方甩过去）→ 左中（0.69s）→ 右边缘（0.58s）
+- 4.73s：停在右边缘 (0.967W, 0.47H)，镜头朝右
+- 光锥里的画面**固定在屏幕上不动**，光锥只是一个 SVG `clipPath` 遮罩
+
+## 参数表
+| 参数 | 典型值 | 调节手感 |
+|------|--------|----------|
+| 上抛 / 下落 | 0.63s `oc` / 0.54s p⁵ | 命门：下落必须是加速的（自由落体），换成 `io` 会像被吊下来 |
+| 接罩 | 起跳 0.2s `oc`，罩子 ease-in 平方落下 | 命门：两者要在 1.667s 同一帧相撞，光锥才像是「撞开的」 |
+| 光锥张开 | 0.07s，半角 36° | 命门：一两帧内全开；小于 28° 一次只露出一条，看不出底下是图；大于 45° 几乎全屏，等于没遮 |
+| 扫动缓动 | 每段单独的贝塞尔：慢起步 → 中段冲刺 → 长拖尾 | 每段速度峰值的位置不同（第一段偏早、后两段居中） |
+| 段落时刻 | 1.83 / 2.40 / 2.62 / 3.43 / 4.15s | 换音乐时整体平移，不要压缩单段时长 |
+| 摄像机大小 | 2.4（含遮光罩约 190×190px） | 竖屏建议 2.8–3.4 |
+| 画面 | 1 / 2 / 4 格 | 图片按 `slice` 铺满格子，主体放在格子中间 |
+
+## 声音建议
+上抛一声「嗖」，落地一声闷「咚」，撞罩开光锥对一声「咔哒」或镜头开机音；之后每段扫动的中段冲刺对音乐鼓点，不再额外叠音效。
+
+## 实现要点
+- 直接用 SVG `clipPath` 绘制动态光锥遮罩，无需绿幕抠图素材
+- 蓝墨机身 + 绿墨遮光罩的套色叠印（`mix-blend-mode: multiply`），带轻微套印错版反馈
+- 2 层残影模拟运动模糊，仅在帧间位移 > 6px 或转角 > 4° 时出现
+</script>
+
+<script id="effect-core">
+function render(t, p, ctx) {
+  const { E, lerp, clamp, io, oc, bez, mis, esc } = ctx.M;
+  const W = ctx.W, H = ctx.H, s = p.scale;
+  // ── 节奏命门（秒 / 画面比例）──
+  // ① 上抛：竖直抛起减速到顶 → 加速落下 → 落地小弹；同时匀速翻一整圈
+  const Y0 = 1.06, UP = .63, Y_TOP = .141, FALL = .54, FALL_POW = 5, Y_LAND = .62;
+  const SPIN = [.12, 1.03];
+  const LAND_BOUNCE = [1.17, .22, .02];               // 落地回弹：时刻、时长、高度
+  // ② 接罩：机身起跳去接罩子，撞上的一帧光锥全开，然后回弹下沉
+  const HOP = [1.47, .2], Y_HOP = .49, IMPACT = 1.667, RECOIL = [1.672, .165], Y_REST = .597;
+  const HOOD_IN = 1.13, HOOD_FLOAT = [.17, .13, .32];  // 罩子出现时刻、浮起高度（起 → 顶）、浮起时长
+  const HOOD_SPINS = 540, BEAM_OPEN = .07, SPREAD = 36;
+  // ③ 扫画面：每段是一次独立的位移（可以重叠叠加），位置和光锥角度用同一条曲线
+  //    [开始, 时长, dx, dy, d角度, 缓动]
+  const MOVES = [
+    [1.83, .62, -.285, -.17, 106, bez(.5, .15, .1, 1)],    // 底部 → 左侧，早加速、长拖尾
+    [2.40, .27, .016, -.157, 7, q => Math.pow(q, 1.6)],   // 左侧往上「蹿」，加速后急停（像撞到顶）
+    [2.62, .76, .537, -.063, 128, bez(.6, .2, .15, 1)],    // 左上 → 右上，光锥从下方甩过去
+    [3.43, .69, -.473, .263, -151, bez(.75, 0, .25, 1)],   // 右上 → 左中，慢起步、中段猛冲
+    [4.15, .58, .672, 0, 0, bez(.75, .05, .3, .95)],       // 左中 → 右边缘停住
+  ];
+  const JOLTS = [IMPACT, 2.67];                        // 套印错位的两拍：撞罩、急停
+  // 摄像机几何（单位尺寸，镜头朝 +x）：机身横宽 80、纵深 56；梯形遮光罩 16→40，光锥从罩口发出
+  const LENS = 40, MOUTH = 22, HOOD_C = 28;
+
+  const preY = tt => {
+    if (tt < UP) return lerp(Y0, Y_TOP, oc(tt / UP));
+    if (tt < UP + FALL) return lerp(Y_TOP, Y_LAND, Math.pow((tt - UP) / FALL, FALL_POW));
+    if (tt < HOP[0]) { const b = E(tt, LAND_BOUNCE[0], LAND_BOUNCE[1]); return Y_LAND - LAND_BOUNCE[2] * Math.sin(Math.PI * b); }
+    if (tt < IMPACT) return lerp(Y_LAND, Y_HOP, oc(E(tt, HOP[0], HOP[1])));
+    return lerp(Y_HOP, Y_REST, oc(E(tt, RECOIL[0], RECOIL[1])));
+  };
+  const pose = tt => {
+    if (tt < MOVES[0][0]) return [W / 2, preY(tt) * H, -450 + 360 * io(E(tt, SPIN[0], SPIN[1]))];
+    let px = .5, py = Y_REST, pa = -90;
+    for (const [t0, d, dx, dy, da, f] of MOVES) {
+      const q = E(tt, t0, d);
+      if (q <= 0) break;
+      const e = f(q); px += dx * e; py += dy * e; pa += da * e;
+    }
+    return [px * W, py * H, pa];
+  };
+  // 罩子没装上时自己在世界坐标里飞：浮起 → 加速落向镜头位置
+  const hoodFree = tt => {
+    const [bx, by] = pose(tt);
+    const attachY = by - HOOD_C * s;
+    const fl = HOOD_FLOAT, tTop = HOOD_IN + fl[2];
+    const hy = tt < tTop ? lerp(fl[0], fl[1], oc(E(tt, HOOD_IN, fl[2]))) * H : lerp(fl[1] * H, attachY, Math.pow(E(tt, tTop, IMPACT - tTop), 2));
+    return [bx, hy, -90 + HOOD_SPINS * (1 - E(tt, HOOD_IN, IMPACT - HOOD_IN))];
+  };
+  const camG = (x, y, a) => `translate(${x} ${y}) rotate(${a}) scale(${s})`;
+  const bodyShape = c => `<rect x="-40" y="-40" width="56" height="80" rx="10" fill="${c}"/>`;
+  const hoodPath = c => `<path d="M16 -10 L${LENS} ${-MOUTH} L${LENS} ${MOUTH} L16 10Z" fill="${c}"/>`;
+  const ink = `style="mix-blend-mode:multiply"`;
+
+  let out = '';
+  if (p.paperBg) out += `<rect width="${W}" height="${H}" fill="${p.paper}"/>`;
+
+  // ── 光锥 + 画面 ──
+  const [x, y, a] = pose(t);
+  const k = oc(E(t, IMPACT, BEAM_OPEN));
+  if (k > 0) {
+    const L = 5000 / s, w0 = MOUTH * k, w1 = w0 + L * Math.tan(SPREAD * k * Math.PI / 180);
+    const cid = `${ctx.uid}-beam`;
+    out += `<defs><clipPath id="${cid}"><path transform="${camG(x, y, a)}" d="M${LENS} ${-w0} L${LENS + L} ${-w1} L${LENS + L} ${w1} L${LENS} ${w0}Z"/></clipPath></defs>`;
+    // 画面布局：1 格全屏 / 2 格左右 / 3–4 格田字
+    const imgs = String(p.images || '').split('\n').map(v => v.trim());
+    const labs = String(p.labels || '').split('\n').map(v => v.trim());
+    const n = clamp(Math.max(imgs.filter(Boolean).length ? imgs.length : 0, labs.filter(Boolean).length ? labs.length : 0), 1, 4);
+    const cells = n === 1 ? [[0, 0, W, H]] : n === 2 ? [[0, 0, W / 2, H], [W / 2, 0, W / 2, H]] : [[0, 0, W / 2, H / 2], [W / 2, 0, W / 2, H / 2], [0, H / 2, W / 2, H / 2], [W / 2, H / 2, W / 2, H / 2]];
+    const GAP = 6;
+    let C = '';
+    cells.forEach(([cx0, cy0, cw, ch], i) => {
+      const gx = cx0 + GAP, gy = cy0 + GAP, gw = cw - GAP * 2, gh = ch - GAP * 2;
+      const src = imgs[i];
+      if (src) {
+        const href = /^(https?:|data:|\/)/.test(src) ? src : ctx.asset(src);
+        C += `<image href="${esc(href)}" x="${gx}" y="${gy}" width="${gw}" height="${gh}" preserveAspectRatio="xMidYMid slice"/>`;
+      } else {
+        const c = (i + (i >> 1)) % 2 ? p.ink2 : p.ink;   // 田字格交错上色
+        C += `<rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" fill="${c}" opacity=".2" ${ink}/>`;
+        const fs = Math.min(gw, gh) * .17;
+        if (labs[i]) C += `<text x="${gx + gw / 2}" y="${gy + gh / 2 + fs * .36}" text-anchor="middle" font-size="${fs}" fill="${c}" ${ink}>${esc(labs[i])}</text>`;
+      }
+    });
+    out += `<g clip-path="url(#${cid})">${C}</g>`;
+  }
+
+  // ── 摄像机：残影（运动模糊）+ 本体 ──
+  const draw = (tt, op, jit) => {
+    const [px, py, pa] = pose(tt);
+    const g = camG(px, py, pa);
+    let r = `<g transform="${g}" opacity="${op}" ${ink}>${bodyShape(p.ink)}</g>`;
+    if (tt >= HOOD_IN) {
+      const off = p.misreg ? `translate(${4 + jit} ${3 + jit * .5}) ` : '';
+      let hg;
+      if (tt < IMPACT) { const [hx, hy, ha] = hoodFree(tt); hg = `translate(${hx} ${hy}) rotate(${ha}) scale(${s}) translate(${-HOOD_C} 0)`; }
+      else hg = g;
+      r += `<g transform="${off}${hg}" opacity="${op * clamp((tt - HOOD_IN) / .05) * .93}" ${ink}>${hoodPath(p.ink2)}</g>`;
+    }
+    return r;
+  };
+  // 残影：只在移动快的时候画（位移 > 6px 或转角 > 4°）
+  for (const [dt, gop] of [[.07, .12], [.035, .24]]) {
+    const [gx, gy, ga] = pose(Math.max(0, t - dt));
+    if (Math.hypot(gx - x, gy - y) > 6 || Math.abs(ga - a) > 4) out += draw(Math.max(0, t - dt), gop, 0);
+  }
+  const jit = p.misreg ? JOLTS.reduce((acc, at) => acc + mis(t, at, 8), 0) : 0;
+  out += draw(t, 1, jit);
+  return out;
+}
+</script>
+</head>
+<body>
+<script src="./lib/motion.js"></script>
+<script src="./lib/harness.js"></script>
+</body>
+</html>
